@@ -1,56 +1,19 @@
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
+import express from 'express';
+import watchlistRoutes from './routes/watchlist.js';
+import transactionRoutes from './routes/transactions.js';
 
-async function setupDatabase() {
-	const db = await open({
-		filename: "ergo_cache.db",
-		driver: sqlite3.Database,
-	});
+const app = express();
+const PORT = 3000;
 
-	await db.exec(`
-    CREATE TABLE IF NOT EXISTS transactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      tx_id TEXT NOT NULL,
-      ergo_tree TEXT NOT NULL,
-      data TEXT NOT NULL,
-      height INTEGER NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+app.use(express.json());
 
-	await db.exec(`
-    CREATE TABLE IF NOT EXISTS watchlist (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ergo_tree TEXT NOT NULL UNIQUE,
-      description TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+app.get('/', (req, res) => {
+    res.send('Web server is running!');
+});
 
-	await db.exec(`
-    CREATE TRIGGER IF NOT EXISTS update_transactions_updated_at
-    AFTER UPDATE ON transactions
-    BEGIN
-      UPDATE transactions
-      SET updated_at = CURRENT_TIMESTAMP
-      WHERE id = NEW.id;
-    END;
-  `);
+app.use('/watchlist', watchlistRoutes);
+app.use('/transactions', transactionRoutes);
 
-	await db.exec(`
-    CREATE TRIGGER IF NOT EXISTS update_watchlist_updated_at
-    AFTER UPDATE ON watchlist
-    BEGIN
-      UPDATE watchlist
-      SET updated_at = CURRENT_TIMESTAMP
-      WHERE id = NEW.id;
-    END;
-  `);
-
-	console.log("Database, tables, and triggers setup complete.");
-	return db;
-}
-
-setupDatabase().catch(console.error);
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
