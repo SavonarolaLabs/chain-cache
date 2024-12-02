@@ -14,12 +14,42 @@ async function setupDatabase() {
       ergo_tree TEXT NOT NULL,
       data TEXT NOT NULL,
       height INTEGER NOT NULL,
-      inserted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-	console.log("Database and 'transactions' table setup complete.");
+	await db.exec(`
+    CREATE TABLE IF NOT EXISTS watchlist (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ergo_tree TEXT NOT NULL UNIQUE,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+	await db.exec(`
+    CREATE TRIGGER IF NOT EXISTS update_transactions_updated_at
+    AFTER UPDATE ON transactions
+    BEGIN
+      UPDATE transactions
+      SET updated_at = CURRENT_TIMESTAMP
+      WHERE id = NEW.id;
+    END;
+  `);
+
+	await db.exec(`
+    CREATE TRIGGER IF NOT EXISTS update_watchlist_updated_at
+    AFTER UPDATE ON watchlist
+    BEGIN
+      UPDATE watchlist
+      SET updated_at = CURRENT_TIMESTAMP
+      WHERE id = NEW.id;
+    END;
+  `);
+
+	console.log("Database, tables, and triggers setup complete.");
 	return db;
 }
 
